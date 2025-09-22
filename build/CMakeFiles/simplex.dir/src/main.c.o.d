@@ -27,4 +27,5 @@ CMakeFiles/simplex.dir/src/main.c.o: \
  /usr/include/x86_64-linux-gnu/bits/stdint-intn.h \
  /usr/include/x86_64-linux-gnu/bits/stdint-uintn.h \
  /home/samuel/c/skola/magb22/simplex/src/../include/simplex.h \
+ /usr/lib/gcc/x86_64-linux-gnu/9/include/stdbool.h \
  /home/samuel/c/skola/magb22/simplex/src/../include/../lib/types.h

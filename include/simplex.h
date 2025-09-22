@@ -1,6 +1,8 @@
 #ifndef SIMPLEX_H
 #define SIMPLEX_H
 
+#include <stdbool.h>
+
 #include "../lib/types.h"
 
 typedef enum RowType
@@ -25,15 +27,22 @@ typedef struct TableauCol
 
 typedef struct Tableau
 {
+	bool optimal;
 	TableauRow* rows;
 	u32 row_len;
 	u32 col_len;
 } Tableau;
 
+typedef struct ResultPair
+{
+	f32 value;
+	i32 id;
+} ResultPair;
+
 typedef struct SimplexResult
 {
 	f32 optimal_value;
-	f32* decvar_values;
+	ResultPair* decvar;
 	u32 len;
 } SimplexResult;
 
