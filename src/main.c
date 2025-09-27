@@ -2,12 +2,23 @@
 
 #include "../lib/types.h"
 #include "../include/simplex.h"
+#include "../include/parse.h"
 
 i32 main(i32 argc, char* argv[]) 
 {
+	if(argc == 2)
+	{
+		Tableau* tab = parse_read_file(argv[1]);
+		tableau_run_dual_simplex(tab);
+		//tableau_run_simplex(tab);
+	}
+	else
+	{
+		Tableau* tab = parse_read_file("tests/test3.fspx");
+		tableau_run_simplex(tab);
+	}
 
-#if 1
-	Tableau* tab = tableau_new(2, 4);
+#if 0
 	tab->rows[0].values[0] = 2.0;
 	tab->rows[0].values[1] = 5.0;
 	tab->rows[0].values[2] = 1.0;
@@ -83,7 +94,7 @@ i32 main(i32 argc, char* argv[])
 	tab->rows[5].values[5] = 0.0;
 #endif
 
-	tableau_run_simplex(tab);
+	//tableau_run_simplex(tab);
 
 	return 0;
 }

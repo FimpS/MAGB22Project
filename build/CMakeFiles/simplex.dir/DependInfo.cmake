@@ -9,6 +9,7 @@ set(CMAKE_DEPENDS_LANGUAGES
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/samuel/c/skola/magb22/simplex/src/main.c" "CMakeFiles/simplex.dir/src/main.c.o" "gcc" "CMakeFiles/simplex.dir/src/main.c.o.d"
+  "/home/samuel/c/skola/magb22/simplex/src/parse.c" "CMakeFiles/simplex.dir/src/parse.c.o" "gcc" "CMakeFiles/simplex.dir/src/parse.c.o.d"
   "/home/samuel/c/skola/magb22/simplex/src/simplex.c" "CMakeFiles/simplex.dir/src/simplex.c.o" "gcc" "CMakeFiles/simplex.dir/src/simplex.c.o.d"
   )
 

@@ -153,6 +153,30 @@ src/main.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/simplex.dir/build.make CMakeFiles/simplex.dir/src/main.c.s
 .PHONY : src/main.c.s
 
+src/parse.o: src/parse.c.o
+.PHONY : src/parse.o
+
+# target to build an object file
+src/parse.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/simplex.dir/build.make CMakeFiles/simplex.dir/src/parse.c.o
+.PHONY : src/parse.c.o
+
+src/parse.i: src/parse.c.i
+.PHONY : src/parse.i
+
+# target to preprocess a source file
+src/parse.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/simplex.dir/build.make CMakeFiles/simplex.dir/src/parse.c.i
+.PHONY : src/parse.c.i
+
+src/parse.s: src/parse.c.s
+.PHONY : src/parse.s
+
+# target to generate assembly for a file
+src/parse.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/simplex.dir/build.make CMakeFiles/simplex.dir/src/parse.c.s
+.PHONY : src/parse.c.s
+
 src/simplex.o: src/simplex.c.o
 .PHONY : src/simplex.o
 
@@ -189,6 +213,9 @@ help:
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"
+	@echo "... src/parse.o"
+	@echo "... src/parse.i"
+	@echo "... src/parse.s"
 	@echo "... src/simplex.o"
 	@echo "... src/simplex.i"
 	@echo "... src/simplex.s"

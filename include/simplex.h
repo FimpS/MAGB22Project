@@ -48,6 +48,7 @@ typedef struct SimplexResult
 
 Tableau* tableau_new(u32 num_constraints, u32 num_variables);
 SimplexResult tableau_run_simplex(Tableau* tab);
+SimplexResult tableau_run_dual_simplex(Tableau* tab);
 void tableau_print(Tableau* tab);
 
 #endif

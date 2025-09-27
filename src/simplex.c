@@ -5,7 +5,7 @@
 
 #include "../include/simplex.h"
 
-#define LINE_LEN 128
+#define LINE_LEN 90
 #define EXTRA_ROWS 3
 #define DRAW_LINE() { for(i32 oooga = 0; oooga < LINE_LEN; oooga++) printf("-"); printf("\n"); }
 #define ID_NONE -1
@@ -74,17 +74,19 @@ i32 tableaurow_min(f32* values, u32 len)
 	i32 rindex = 0;
 	for(i32 i = 1; i < len; i++)
 	{
-		if(min < 0.0) 
+		printf("%f\n", values[i-1]);
+		if(min <= 0.0) 
 		{
 			min = values[i];
 			rindex = i;
 			continue;
 		}
-		if(min >= values[i] && values[i] >= 0.0) 
+		if(min >= values[i] && values[i] > 0.0) 
 		{
 			min = values[i];
 			rindex = i;
 		}
+		printf("%f\n", min);
 	}
 	if(min <= 0.0) { printf("TODO: INFEASABLE\n"); rindex = -1; }
 
@@ -160,7 +162,7 @@ Tableau* tableau_new(u32 num_constraints, u32 num_variables)
 			id = i + num_variables - num_constraints;
 		}
 		tab_new->rows[i] = tableaurow_new(tab_new->row_len, id);
-		test++;
+		//test++;
 	}
 
 	return tab_new;
@@ -177,6 +179,7 @@ void tableau_print(Tableau* tab)
 		} else 
 			printf("%9s_%d", "s", i + 1 - decvar_count);
 	}
+	printf("%9s", "RHS");
 	printf("\n");
 	DRAW_LINE();
 	for(i32 i = 0; i < tab->col_len; i++)
@@ -193,16 +196,16 @@ void tableau_print(Tableau* tab)
 		{
 			if(row->id < decvar_count)
 			{
-				printf("\tx_%d ", row->id + 1);
+				printf(" x_%d ", row->id + 1);
 			}
 			else
 			{
-				printf("\ts_%d ", row->id - decvar_count + 1);
+				printf(" s_%d ", row->id - decvar_count + 1);
 			}
 		}
-		if( i == tab->col_len - 3)	printf("\tzj");
-		if( i == tab->col_len - 2)  printf("\tcj - zj");
-		if( i == tab->col_len - 1)	printf("\tcj"); 
+		if( i == tab->col_len - 3)	printf(" zj");
+		if( i == tab->col_len - 2)  printf(" cj - zj");
+		if( i == tab->col_len - 1)	printf(" cj"); 
 		printf("\n");
 		if( i == tab->col_len - 3 - 1 ) DRAW_LINE();
 	}
@@ -395,7 +398,7 @@ SimplexResult tableau_run_simplex(Tableau* tab)
 		tableau_calculate_zj(tab);
 		tableau_calculate_zjcj_diff(tab);
 		if(tableau_is_optimal(tab)) break;
-		//tableau_print(tab);
+		tableau_print(tab);
 		u32 variable_in_index = tableau_find_max_zjcj(tab);
 		u32 variable_out_index = tableau_ratio_test(tab, variable_in_index);
 		const f32 pivot_element = tab->rows[variable_out_index].values[variable_in_index];
@@ -423,6 +426,109 @@ SimplexResult tableau_run_simplex(Tableau* tab)
 	return result;
 }
 
+i32 tableau_find_min_RHS(Tableau* tab)
+{
+	i32 res = -1;
+	u32 rhs_index = tab->row_len - 1;
+	u32 len = tab->col_len - EXTRA_ROWS;
 
+	f32 min = tab->rows[0].values[rhs_index];
+	for(i32 i = 0; i < len; i++)
+	{
+		//printf("in min: %d\n", min);
+		if(min >= tab->rows[i].values[rhs_index])
+		{
+			min = tab->rows[i].values[rhs_index];
+			res = i;
+		}
+	}
+	if(min >= 0.0) return -1;
+
+	return res;
+}
+
+void tableau_calculate_zjcjaij(Tableau* tab, i32 aij_index)
+{
+	tableau_calculate_zjcj_diff(tab);
+	TableauRow* zcdiff = &tab->rows[tableau_get_cjzj_diff(tab)];
+	TableauRow* aij_row = &tab->rows[aij_index];
+	for(i32 i = 0; i < zcdiff->len - 1; i++)
+	{
+		if(aij_row->values[i] < 0.0)
+		{
+			zcdiff->values[i] /= aij_row->values[i];
+		}
+		else zcdiff->values[i] = -1.0;
+	}
+}
+
+i32 tableau_find_min_nonneg_zjcjaij(Tableau* tab)
+{
+	i32 res = -1;
+	TableauRow* aij_row = &tab->rows[tableau_get_cjzj_diff(tab)];
+	f32 min = aij_row->values[0];
+	for(i32 i = 0; i < aij_row->len - 1; i++)
+	{
+		f32 value = aij_row->values[i];
+		if((value >= 0.0 && min >= value) || min < 0.0)
+		{
+			min = value;
+			res = i;
+		}
+	}
+	if(min <= 0.0) return -1;
+	return res;
+
+}
+
+bool tableau_is_dual_optimal(Tableau* tab)
+{
+	u32 rhs_index = tab->row_len - 1;
+	u32 len = tab->col_len - EXTRA_ROWS;
+	
+	for(i32 i = 0; i < len; i++)
+	{
+		if(tab->rows[i].values[rhs_index] < 0.0) return false;
+	}
+	return true;
+}
+
+SimplexResult tableau_run_dual_simplex(Tableau* tab)
+{
+	i32 iteration = 1;
+	DRAW_LINE();
+	printf("Initial Tableau:\n");
+	tableau_print(tab);
+	DRAW_LINE();
+	while(!tableau_is_dual_optimal(tab))
+	{
+		printf("ITERATION: %d\n", iteration ++);
+		tableau_calculate_zj(tab);
+		i32 variable_out_index = tableau_find_min_RHS(tab);
+		tableau_calculate_zjcjaij(tab, variable_out_index);
+		i32 variable_in_index = tableau_find_min_nonneg_zjcjaij(tab);
+		printf("In: %d\nOut: %d\n", variable_in_index, variable_out_index);
+		//tableau_print(tab);
+
+		const f32 pivot_element = tab->rows[variable_out_index].values[variable_in_index];
+		TableauRow* pivot_row = &tab->rows[variable_out_index];
+		printf("Pivot Element: %f\n", pivot_element);
+		pivot_row->id = variable_in_index;
+
+		tableau_adjust_pivotrow(pivot_row, pivot_element);
+		tableau_adjust_non_pivot_rows(tab, *pivot_row, variable_out_index, variable_in_index);
+		DRAW_LINE();
+		tableau_print(tab);
+		DRAW_LINE();
+	}
+	printf("OPTIMAL TABLEAU:\n");
+	DRAW_LINE();
+	tableau_print(tab);
+	DRAW_LINE();
+
+	SimplexResult result = simplexresult_new(tab);
+	DRAW_LINE();
+	simplexresult_print(result, tab);
+}
 
 

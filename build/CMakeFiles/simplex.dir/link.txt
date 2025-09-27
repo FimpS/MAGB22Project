@@ -1,1 +1,1 @@
-/usr/bin/cc CMakeFiles/simplex.dir/src/main.c.o CMakeFiles/simplex.dir/src/simplex.c.o -o simplex
+/usr/bin/cc CMakeFiles/simplex.dir/src/main.c.o CMakeFiles/simplex.dir/src/parse.c.o CMakeFiles/simplex.dir/src/simplex.c.o -o simplex

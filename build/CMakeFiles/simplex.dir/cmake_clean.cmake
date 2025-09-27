@@ -1,6 +1,8 @@
 file(REMOVE_RECURSE
   "CMakeFiles/simplex.dir/src/main.c.o"
   "CMakeFiles/simplex.dir/src/main.c.o.d"
+  "CMakeFiles/simplex.dir/src/parse.c.o"
+  "CMakeFiles/simplex.dir/src/parse.c.o.d"
   "CMakeFiles/simplex.dir/src/simplex.c.o"
   "CMakeFiles/simplex.dir/src/simplex.c.o.d"
   "simplex"

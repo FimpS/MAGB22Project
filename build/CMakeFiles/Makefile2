@@ -81,12 +81,12 @@ clean: CMakeFiles/simplex.dir/clean
 CMakeFiles/simplex.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/simplex.dir/build.make CMakeFiles/simplex.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/simplex.dir/build.make CMakeFiles/simplex.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/samuel/c/skola/magb22/simplex/build/CMakeFiles --progress-num=1,2,3 "Built target simplex"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/samuel/c/skola/magb22/simplex/build/CMakeFiles --progress-num=1,2,3,4 "Built target simplex"
 .PHONY : CMakeFiles/simplex.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/simplex.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/samuel/c/skola/magb22/simplex/build/CMakeFiles 3
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/samuel/c/skola/magb22/simplex/build/CMakeFiles 4
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/simplex.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/samuel/c/skola/magb22/simplex/build/CMakeFiles 0
 .PHONY : CMakeFiles/simplex.dir/rule
