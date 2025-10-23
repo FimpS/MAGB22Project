@@ -12,6 +12,13 @@ typedef enum RowType
 	EQUAL,
 } RowType;
 
+typedef enum MethodType
+{
+	NORMAL,
+	TWOPHASE,
+	DUAL,
+} MethodType;
+
 typedef struct TableauRow
 {
 	f32* values;
@@ -31,6 +38,9 @@ typedef struct Tableau
 	TableauRow* rows;
 	u32 row_len;
 	u32 col_len;
+
+	MethodType simplex_version;
+	bool maxproblem;
 } Tableau;
 
 typedef struct ResultPair
@@ -50,5 +60,6 @@ Tableau* tableau_new(u32 num_constraints, u32 num_variables);
 SimplexResult tableau_run_simplex(Tableau* tab);
 SimplexResult tableau_run_dual_simplex(Tableau* tab);
 void tableau_print(Tableau* tab);
+MethodType tableau_decide_method(Tableau* tab);
 
 #endif

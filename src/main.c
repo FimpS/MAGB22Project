@@ -9,13 +9,27 @@ i32 main(i32 argc, char* argv[])
 	if(argc == 2)
 	{
 		Tableau* tab = parse_read_file(argv[1]);
-		tableau_run_dual_simplex(tab);
-		//tableau_run_simplex(tab);
+		MethodType mtype = tableau_decide_method(tab);
+		tab->simplex_version = mtype;
+		switch(mtype)
+		{
+			case NORMAL:
+				printf("CHOSE NORMAL\n");
+				tableau_run_simplex(tab);
+				break;
+			case DUAL:
+				printf("CHOSE DUAL\n");
+				tableau_run_dual_simplex(tab);
+				break;
+			case TWOPHASE:
+				break;
+			default: break;
+		}
 	}
 	else
 	{
-		Tableau* tab = parse_read_file("tests/test3.fspx");
-		tableau_run_simplex(tab);
+		Tableau* tab = parse_read_file("tests/testdual5.fspx");
+		//tableau_run_simplex(tab);
 	}
 
 #if 0

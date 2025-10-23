@@ -10,6 +10,11 @@
 #define DRAW_LINE() { for(i32 oooga = 0; oooga < LINE_LEN; oooga++) printf("-"); printf("\n"); }
 #define ID_NONE -1
 
+#define COLOR_GREEN "\033[0;32m"
+#define COLOR_RED "\033[0;31m"
+#define COLOR_BLUE "\033[0;34m"
+#define COLOR_RESET "\033[0m"
+
 
 
 void simplexresult_destory(SimplexResult sresult)
@@ -74,7 +79,7 @@ i32 tableaurow_min(f32* values, u32 len)
 	i32 rindex = 0;
 	for(i32 i = 1; i < len; i++)
 	{
-		printf("%f\n", values[i-1]);
+		//printf("%f\n", values[i-1]);
 		if(min <= 0.0) 
 		{
 			min = values[i];
@@ -86,7 +91,7 @@ i32 tableaurow_min(f32* values, u32 len)
 			min = values[i];
 			rindex = i;
 		}
-		printf("%f\n", min);
+		//printf("%f\n", min);
 	}
 	if(min <= 0.0) { printf("TODO: INFEASABLE\n"); rindex = -1; }
 
@@ -134,14 +139,18 @@ u32 tableau_ratio_test(Tableau* tab, u32 pivot_col_index)
 		f32 current_denom = tab->rows[i].values[pivot_col_index];
 		if(current_denom == 0.0)
 		{
+			test_values[i] = 99999999.0;
 			continue;
 			//TODO bad divisor continue;
 		}
-		f32 test = tab->rows[i].values[last_index] / current_denom;
-		test_values[i] = test;
+		else
+		{
+			f32 test = tab->rows[i].values[last_index] / current_denom;
+			test_values[i] = test;
+		}
 
 	}
-	u32 rindex = tableaurow_min(test_values, tab->row_len - extra_rows);
+	u32 rindex = tableaurow_min(test_values, tab->col_len - EXTRA_ROWS);
 	free(test_values);
 	return rindex;
 }
@@ -175,9 +184,9 @@ void tableau_print(Tableau* tab)
 	{
 		if(i < decvar_count)
 		{
-			printf("%9s_%d", "x", i + 1);
+			printf("%s%9s_%d%s", COLOR_GREEN, "x", i + 1, COLOR_RESET);
 		} else 
-			printf("%9s_%d", "s", i + 1 - decvar_count);
+			printf("%s%9s_%d%s", COLOR_RED, "s", i + 1 - decvar_count, COLOR_RESET);
 	}
 	printf("%9s", "RHS");
 	printf("\n");
@@ -185,26 +194,27 @@ void tableau_print(Tableau* tab)
 	for(i32 i = 0; i < tab->col_len; i++)
 	{
 		TableauRow* row = &tab->rows[i];
-		
+
 		printf("| ");
 		for(i32 j = 0; j < tab->row_len; j++)
 		{
 			printf("%10.4f ", tab->rows[i].values[j]);
 		}
+		printf("%s", COLOR_RESET);
 		printf("|");
 		if(i < tab->col_len - 3)
 		{
 			if(row->id < decvar_count)
 			{
-				printf(" x_%d ", row->id + 1);
+				printf("%s x_%d %s",COLOR_GREEN, row->id + 1, COLOR_RESET);
 			}
 			else
 			{
-				printf(" s_%d ", row->id - decvar_count + 1);
+				printf("%s s_%d %s", COLOR_RED, row->id - decvar_count + 1, COLOR_RESET);
 			}
 		}
 		if( i == tab->col_len - 3)	printf(" zj");
-		if( i == tab->col_len - 2)  printf(" cj - zj");
+		if( i == tab->col_len - 2)  printf(" (cj - zj)%s", tab->simplex_version == DUAL ? "/aij" : "");
 		if( i == tab->col_len - 1)	printf(" cj"); 
 		printf("\n");
 		if( i == tab->col_len - 3 - 1 ) DRAW_LINE();
@@ -348,6 +358,175 @@ SimplexResult simplexresult_new(Tableau* tab)
 	return res;
 }
 
+bool shadow_is_non_optimal(const SimplexResult r, i32 id)
+{
+	for(i32 i = 0; i < r.len; i++)
+	{
+		if(r.decvar[i].id == id) return false;
+	}
+	return true;
+}
+
+i32* shadow_analysis_get_non_optimal_slack(const SimplexResult result, Tableau* tab, i32* size)
+{
+	i32 decvar_count = (tab->row_len - 1) - (tab->col_len - 3);
+	i32* res = malloc(sizeof(i32) * 32);
+	i32 index = 0;
+	for(i32 i = 0; i < tab->row_len - 1; i++)
+	{
+		if(shadow_is_non_optimal(result, i))
+		{
+			res[index ++] = i;
+			(*size) ++;
+			//printf("Nonoptimal: %d\n", res[index - 1]);
+		}
+	}
+	return res;
+}
+
+f32 shadow_get_obj_upper_bound(const SimplexResult result, Tableau* tab, i32 size, i32* vals, TableauRow* curr_row)
+{
+
+	//TODO should be lowest of the highest i think so smallest pos value and largest neg value
+	TableauRow* zj_row = &tab->rows[tableau_get_zj(tab)];
+	f32 res = 0.0;
+	for(i32 i = 0; i < size; i++)
+	{
+		res = (-1.0) * zj_row->values[vals[i]] / curr_row->values[vals[i]];
+		if(res >= 0.0) break;
+	}
+	for(i32 i = 0; i < size; i++)
+	{
+		f32 suggested = (-1.0) * zj_row->values[vals[i]] / curr_row->values[vals[i]];
+		//printf("Enum: %f, Denom, %f ... Lower Suggested: %f\n", zj_row->values[vals[i]], curr_row->values[vals[i]], suggested);
+		if(suggested <= res && suggested >= 0.0) 
+		{
+			//printf("Res: %f  Suggested: %f\n", res, suggested);
+			res = suggested;
+		}
+	}
+	return res;
+}
+
+f32 shadow_get_obj_lower_bound(const SimplexResult result, Tableau* tab, i32 size, i32* vals, TableauRow* curr_row)
+{
+	TableauRow* zj_row = &tab->rows[tableau_get_zj(tab)];
+	f32 res = 0.0;
+	for(i32 i = 0; i < size; i++)
+	{
+		res = (-1.0) * zj_row->values[vals[i]] / curr_row->values[vals[i]];
+		if(res <= 0.0) break;
+	}
+	for(i32 i = 0; i < size; i++)
+	{
+		f32 suggested = (-1.0) * zj_row->values[vals[i]] / curr_row->values[vals[i]];
+		//printf("Enum: %f, Denom, %f ... Lower Suggested: %f\n", zj_row->values[vals[i]], curr_row->values[vals[i]], suggested);
+		if(suggested >= res && suggested <= 0.0) 
+		{
+			//printf("Res: %f  Suggested: %f\n", res, suggested);
+			res = suggested;
+		}
+	}
+	return res;
+}
+
+f32 shadow_get_cons_upper_bound(const SimplexResult result, Tableau* tab, i32* non_optimal_slack_indeces, u32 col_index)
+{
+
+	f32 res = 0.0;
+
+	for(i32 i = 0; i < tab->col_len - EXTRA_ROWS; i++)
+	{
+		f32 b_factor = tab->rows[i].values[non_optimal_slack_indeces[col_index]];
+		u32 last_index = tab->row_len - 1;
+		f32 rhs_factor = tab->rows[i].values[last_index];
+		res = (-1.0) * rhs_factor / b_factor;
+		if(res >= 0.0) break;
+
+	}
+	for(i32 i = 0; i < tab->col_len - EXTRA_ROWS; i++)
+	{
+		f32 b_factor = tab->rows[i].values[non_optimal_slack_indeces[col_index]];
+		u32 last_index = tab->row_len - 1;
+		f32 rhs_factor = tab->rows[i].values[last_index];
+		f32 suggestion = (-1.0) * rhs_factor / b_factor;
+		if(suggestion <= res && suggestion >= 0.0)
+		{
+			res = suggestion;
+		}
+	}
+
+	return res;
+}
+
+f32 shadow_get_cons_lower_bound(const SimplexResult result, Tableau* tab, i32* non_optimal_slack_indeces, u32 col_index)
+{
+
+	f32 res = 0.0;
+
+	for(i32 i = 0; i < tab->col_len - EXTRA_ROWS; i++)
+	{
+		f32 b_factor = tab->rows[i].values[non_optimal_slack_indeces[col_index]];
+		u32 last_index = tab->row_len - 1;
+		f32 rhs_factor = tab->rows[i].values[last_index];
+		res = (-1.0) * rhs_factor / b_factor;
+		if(res <= 0.0) break;
+
+	}
+	for(i32 i = 0; i < tab->col_len - EXTRA_ROWS; i++)
+	{
+		f32 b_factor = tab->rows[i].values[non_optimal_slack_indeces[col_index]];
+		u32 last_index = tab->row_len - 1;
+		f32 rhs_factor = tab->rows[i].values[last_index];
+		f32 suggestion = (-1.0) * rhs_factor / b_factor;
+		if(suggestion >= res && suggestion <= 0.0)
+		{
+			res = suggestion;
+		}
+	}
+
+	return res;
+}
+
+void simplexshadowanalysis_print(const SimplexResult result, Tableau* tab)
+{
+	printf("col: %d\n", tab->col_len);
+	i32 slack_non_size = 0;
+	i32 *non_optimal_slack_indeces = shadow_analysis_get_non_optimal_slack(result, tab, &slack_non_size);
+	i32 decvar_count = (tab->row_len - 1) - (tab->col_len - 3);
+	//for(i32 i = 0; i < slack_non_size; i++)
+	for(i32 i = 0; i < decvar_count; i++)
+	{
+		//printf("Slack indecis: %d\n", non_optimal_slack_indeces[i]);
+		TableauRow* row = tableau_get_row_by_id(tab, i);
+		if(row != NULL)
+		{
+			//if(row->id <= decvar_count)
+			{
+				TableauRow* zj_row = &tab->rows[tableau_get_zj(tab)];
+				f32 upper_offset = shadow_get_obj_upper_bound(result, tab, slack_non_size, non_optimal_slack_indeces, row);
+				f32 lower_offset = shadow_get_obj_lower_bound(result, tab, slack_non_size, non_optimal_slack_indeces, row);
+				//printf("Upper: %f, Lower: %f\n", upper_offset, lower_offset);
+				TableauRow* cj_row = &tab->rows[tableau_get_cj(tab)];
+				printf("%f < c%d < %f\n", cj_row->values[row->id] + lower_offset, i + 1, cj_row->values[row->id] + upper_offset);
+			}
+		}
+	}
+
+	u32 last_index = tab->row_len - 1;
+	for(i32 i = 0; i < slack_non_size; i ++)
+	{
+		tab->rows[i].values[last_index];
+		f32 upper = shadow_get_cons_upper_bound(result, tab, non_optimal_slack_indeces, i);
+		f32 lower = shadow_get_cons_lower_bound(result, tab, non_optimal_slack_indeces, i);
+		printf("%f < bi_offset < %f\n", lower, upper);
+	}
+
+
+
+	free(non_optimal_slack_indeces);
+}
+
 void simplexresult_print(const SimplexResult result, Tableau* tab)
 {
 	i32 decvar_count = (tab->row_len - 1) - (tab->col_len - 3);
@@ -356,11 +535,11 @@ void simplexresult_print(const SimplexResult result, Tableau* tab)
 	{
 		if(result.decvar[i].id < decvar_count)
 		{
-			printf("x_%d = %f\n", result.decvar[i].id + 1, result.decvar[i].value);	
+			printf("%sx_%d = %f%s\n", COLOR_GREEN, result.decvar[i].id + 1, result.decvar[i].value, COLOR_RESET);	
 		}
 		else
 		{
-			printf("s_%d = %f\n", result.decvar[i].id + 1 - decvar_count, result.decvar[i].value);	
+			printf("%ss_%d = %f%s\n", COLOR_RED, result.decvar[i].id + 1 - decvar_count, result.decvar[i].value, COLOR_RESET);	
 		}
 	}
 	printf("z =");
@@ -382,6 +561,10 @@ void simplexresult_print(const SimplexResult result, Tableau* tab)
 		printf(" %f(%f) %s", val, pair.value, i == tab->row_len - 2 ? "" : "+");
 	}
 	printf("= %f\n", result.optimal_value);
+	DRAW_LINE();
+	printf("Shadow Analysis\n");
+	DRAW_LINE();
+	simplexshadowanalysis_print(result, tab);
 }
 
 SimplexResult tableau_run_simplex(Tableau* tab)
@@ -398,12 +581,14 @@ SimplexResult tableau_run_simplex(Tableau* tab)
 		tableau_calculate_zj(tab);
 		tableau_calculate_zjcj_diff(tab);
 		if(tableau_is_optimal(tab)) break;
-		tableau_print(tab);
 		u32 variable_in_index = tableau_find_max_zjcj(tab);
 		u32 variable_out_index = tableau_ratio_test(tab, variable_in_index);
 		const f32 pivot_element = tab->rows[variable_out_index].values[variable_in_index];
 
+		printf("IN: %d\nOUT: %d PIVOT: %f\n", variable_in_index, variable_out_index, pivot_element);
 		TableauRow* pivot_row = &tab->rows[variable_out_index];
+		for(i32 i = 0; i < pivot_row->len; i++) printf("%f ", pivot_row->values[i]);
+		printf("\n");
 		pivot_row->id = variable_in_index;
 
 		//tableau_print(tab);
@@ -485,7 +670,7 @@ bool tableau_is_dual_optimal(Tableau* tab)
 {
 	u32 rhs_index = tab->row_len - 1;
 	u32 len = tab->col_len - EXTRA_ROWS;
-	
+
 	for(i32 i = 0; i < len; i++)
 	{
 		if(tab->rows[i].values[rhs_index] < 0.0) return false;
@@ -507,6 +692,7 @@ SimplexResult tableau_run_dual_simplex(Tableau* tab)
 		i32 variable_out_index = tableau_find_min_RHS(tab);
 		tableau_calculate_zjcjaij(tab, variable_out_index);
 		i32 variable_in_index = tableau_find_min_nonneg_zjcjaij(tab);
+		tableau_print(tab);
 		printf("In: %d\nOut: %d\n", variable_in_index, variable_out_index);
 		//tableau_print(tab);
 
@@ -529,6 +715,18 @@ SimplexResult tableau_run_dual_simplex(Tableau* tab)
 	SimplexResult result = simplexresult_new(tab);
 	DRAW_LINE();
 	simplexresult_print(result, tab);
+}
+
+MethodType tableau_decide_method(Tableau* tab)
+{
+	u32 rhs_index = tab->row_len - 1;
+	u32 len = tab->col_len - EXTRA_ROWS;
+
+	for(i32 i = 0; i < len; i++)
+	{
+		if(tab->rows[i].values[rhs_index] < 0.0) return DUAL;
+	}
+	return NORMAL;
 }
 
 

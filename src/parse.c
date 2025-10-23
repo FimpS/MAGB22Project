@@ -12,7 +12,7 @@ Tableau* parse_parse_buffer(Chest* chest, char* buffer)
 {
 	i32 lexp = 0;
 	i32 bufferp = 0;
-	f32 rmat[64];
+	f32 rmat[MAX_LEN];
 	u32 lenrmat = 0;
 
 	u32 constraint_counter = 0;
@@ -26,14 +26,19 @@ Tableau* parse_parse_buffer(Chest* chest, char* buffer)
 	printf("%s\n", buffer);
 
 	u32 len = strlen(buffer);
+	char store[MAX_LEN];
+	u32 storei = 0;
 	for(i32 i = 0; i < len; i++)
 	{
 		if(buffer[i] == ';') constraint_counter ++;
+		if(buffer[i] == '>') *(store + storei ++) = '>';
+		if(buffer[i] == '<') *(store + storei ++) = '<';
 	}
+
 	constraint_counter --;
 	printf("cons: %d\n", constraint_counter);
 	u32 dec_variable_count = 0;
-	char lexbuffer[64];
+	char* lexbuffer = malloc(sizeof(char) * MAX_LEN);
 	while(buffer[bufferp] != ';')
 	{
 		//printf("%d\n", buffer[bufferp]);
@@ -42,7 +47,7 @@ Tableau* parse_parse_buffer(Chest* chest, char* buffer)
 		{
 			if(buffer[bufferp - 1] == '-') neg = true;
 			lexbuffer[lexp ++] = buffer[bufferp ++];
-			while(isdigit(buffer[bufferp]))
+			while(isdigit(buffer[bufferp]) || buffer[bufferp] == '.')
 			{
 				lexbuffer[lexp ++] = buffer[bufferp ++];
 			}
@@ -66,7 +71,7 @@ Tableau* parse_parse_buffer(Chest* chest, char* buffer)
 	while(buffer[bufferp] != '$')
 	{
 		//printf("Pointer: %d\n", bufferp);
-		if(buffer[bufferp] == '<')
+		if(buffer[bufferp] == '<' || buffer[bufferp] == '>')
 		{
 			for(i32 i = 0; i < constraint_counter; i++)
 			{
@@ -89,7 +94,7 @@ Tableau* parse_parse_buffer(Chest* chest, char* buffer)
 			if(isdigit(buffer[bufferp]))
 			{
 				lexbuffer[lexp ++] = buffer[bufferp ++];
-				while(isdigit(buffer[bufferp]))
+				while(isdigit(buffer[bufferp]) || buffer[bufferp] == '.')
 				{
 					lexbuffer[lexp ++] = buffer[bufferp ++];
 				}
@@ -107,10 +112,11 @@ Tableau* parse_parse_buffer(Chest* chest, char* buffer)
 				printf("%f\n", rmat[lenrmat - 1]);
 			}
 		}
+		printf("DOPNE HERE\n");
 		if(isdigit(buffer[bufferp]))
 		{
 			lexbuffer[lexp ++] = buffer[bufferp ++];
-			while(isdigit(buffer[bufferp]))
+			while(isdigit(buffer[bufferp]) || buffer[bufferp] == '.')
 			{
 				lexbuffer[lexp ++] = buffer[bufferp ++];
 			}
@@ -156,7 +162,29 @@ Tableau* parse_parse_buffer(Chest* chest, char* buffer)
 		else
 			tab->rows[tab->col_len - 1].values[i] = chest->variable[i].value;
 	}
+
+	for(i32 i = 0; i < storei; i++)
+	{
+		if(store[i] == '>')
+		{
+			for(i32 j = 0; j < tab->row_len; j++)
+			{
+				if(j < dec_variable_count || j >= dec_variable_count + constraint_counter) 
+				{
+					tab->rows[i].values[j] *= -1.0;
+				}
+			}
+		}
+	}
+	if(!chest->maxproblem)
+	{
+		for(i32 i = 0; i < tab->row_len; i++)
+			tab->rows[tab->col_len - 1].values[i] *= -1.0;
+	}
+
+	free(lexbuffer);
 	tableau_print(tab);
+	tab->maxproblem = chest->maxproblem;
 	return tab;
 }
 
