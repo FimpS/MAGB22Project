@@ -5,15 +5,23 @@
 
 #include "../include/simplex.h"
 
-#define LINE_LEN 90
+#define LINE_LEN 224
 #define EXTRA_ROWS 3
 #define DRAW_LINE() { for(i32 oooga = 0; oooga < LINE_LEN; oooga++) printf("-"); printf("\n"); }
 #define ID_NONE -1
 
+#if 1
 #define COLOR_GREEN "\033[0;32m"
 #define COLOR_RED "\033[0;31m"
 #define COLOR_BLUE "\033[0;34m"
 #define COLOR_RESET "\033[0m"
+#endif
+#if 0
+#define COLOR_GREEN ""
+#define COLOR_RED ""
+#define COLOR_BLUE ""
+#define COLOR_RESET ""
+#endif
 
 
 
@@ -397,6 +405,7 @@ f32 shadow_get_obj_upper_bound(const SimplexResult result, Tableau* tab, i32 siz
 	}
 	for(i32 i = 0; i < size; i++)
 	{
+		//if(curr_row->values[vals[i]] == 0.0) return 0.0;
 		f32 suggested = (-1.0) * zj_row->values[vals[i]] / curr_row->values[vals[i]];
 		//printf("Enum: %f, Denom, %f ... Lower Suggested: %f\n", zj_row->values[vals[i]], curr_row->values[vals[i]], suggested);
 		if(suggested <= res && suggested >= 0.0) 
@@ -419,6 +428,7 @@ f32 shadow_get_obj_lower_bound(const SimplexResult result, Tableau* tab, i32 siz
 	}
 	for(i32 i = 0; i < size; i++)
 	{
+		//if(curr_row->values[vals[i]] == 0.0) return 0.0;
 		f32 suggested = (-1.0) * zj_row->values[vals[i]] / curr_row->values[vals[i]];
 		//printf("Enum: %f, Denom, %f ... Lower Suggested: %f\n", zj_row->values[vals[i]], curr_row->values[vals[i]], suggested);
 		if(suggested >= res && suggested <= 0.0) 
@@ -488,6 +498,29 @@ f32 shadow_get_cons_lower_bound(const SimplexResult result, Tableau* tab, i32* n
 	return res;
 }
 
+f32 shadow_dual_get_obj_lower_bound(const SimplexResult result, Tableau* tab, i32 size, i32* vals, TableauRow* curr_row)
+{
+	TableauRow* zj_row = &tab->rows[tableau_get_zj(tab)];
+	f32 res = 0.0;
+	for(i32 i = 0; i < size; i++)
+	{
+		//printf("vals[i] = %f\n", curr_row->values[vals[i]]);
+		res = (-1.0) * zj_row->values[vals[i]] / curr_row->values[vals[i]];
+		if(res <= 0.0) break;
+	}
+	for(i32 i = 0; i < size; i++)
+	{
+		f32 suggested = (-1.0) * zj_row->values[vals[i]] / curr_row->values[vals[i]];
+		//printf("Enum: %f, Denom, %f ... Lower Suggested: %f\n", zj_row->values[vals[i]], curr_row->values[vals[i]], suggested);
+		if(suggested >= res && suggested <= 0.0) 
+		{
+			//printf("Res: %f  Suggested: %f\n", res, suggested);
+			res = suggested;
+		}
+	}
+	return res;
+}
+
 void simplexshadowanalysis_print(const SimplexResult result, Tableau* tab)
 {
 	printf("col: %d\n", tab->col_len);
@@ -495,20 +528,20 @@ void simplexshadowanalysis_print(const SimplexResult result, Tableau* tab)
 	i32 *non_optimal_slack_indeces = shadow_analysis_get_non_optimal_slack(result, tab, &slack_non_size);
 	i32 decvar_count = (tab->row_len - 1) - (tab->col_len - 3);
 	//for(i32 i = 0; i < slack_non_size; i++)
-	for(i32 i = 0; i < decvar_count; i++)
+	for(i32 i = 0; i < decvar_count - 1; i++)
 	{
 		//printf("Slack indecis: %d\n", non_optimal_slack_indeces[i]);
-		TableauRow* row = tableau_get_row_by_id(tab, i);
+		TableauRow* row = tableau_get_row_by_id(tab, i + 1);
 		if(row != NULL)
 		{
 			//if(row->id <= decvar_count)
 			{
 				TableauRow* zj_row = &tab->rows[tableau_get_zj(tab)];
 				f32 upper_offset = shadow_get_obj_upper_bound(result, tab, slack_non_size, non_optimal_slack_indeces, row);
-				f32 lower_offset = shadow_get_obj_lower_bound(result, tab, slack_non_size, non_optimal_slack_indeces, row);
+				f32 lower_offset = shadow_dual_get_obj_lower_bound(result, tab, slack_non_size, non_optimal_slack_indeces, row);
 				//printf("Upper: %f, Lower: %f\n", upper_offset, lower_offset);
 				TableauRow* cj_row = &tab->rows[tableau_get_cj(tab)];
-				printf("%f < c%d < %f\n", cj_row->values[row->id] + lower_offset, i + 1, cj_row->values[row->id] + upper_offset);
+				printf("%f < c%d < %f\n", cj_row->values[row->id] + lower_offset, i + 1 + 1, cj_row->values[row->id] + upper_offset);
 			}
 		}
 	}
@@ -519,7 +552,7 @@ void simplexshadowanalysis_print(const SimplexResult result, Tableau* tab)
 		tab->rows[i].values[last_index];
 		f32 upper = shadow_get_cons_upper_bound(result, tab, non_optimal_slack_indeces, i);
 		f32 lower = shadow_get_cons_lower_bound(result, tab, non_optimal_slack_indeces, i);
-		printf("%f < bi_offset < %f\n", lower, upper);
+		printf("%f < b%d_offset < %f\n", lower, i + 1, upper);
 	}
 
 
@@ -595,11 +628,10 @@ SimplexResult tableau_run_simplex(Tableau* tab)
 		tableau_adjust_pivotrow(pivot_row, pivot_element);
 		tableau_adjust_non_pivot_rows(tab, *pivot_row, variable_out_index, variable_in_index);
 		//tableau_adjust_non_pivot_rows TODO NEXT MAKE THIS FOR ALL ROWS NEEDED just loop through the rows and not pass in one row...
-#if 1
+		//
 		DRAW_LINE();
 		tableau_print(tab);
 		DRAW_LINE();
-#endif
 	}
 	DRAW_LINE();
 	tableau_print(tab);

@@ -66,6 +66,7 @@ Tableau* parse_parse_buffer(Chest* chest, char* buffer)
 		}
 		bufferp ++;
 	}
+	printf("Final dec_var = %d\n", dec_variable_count);
 
 	u32 cons_index = 0;
 	while(buffer[bufferp] != '$')
@@ -112,7 +113,7 @@ Tableau* parse_parse_buffer(Chest* chest, char* buffer)
 				printf("%f\n", rmat[lenrmat - 1]);
 			}
 		}
-		printf("DOPNE HERE\n");
+		//printf("DOPNE HERE\n");
 		if(isdigit(buffer[bufferp]))
 		{
 			lexbuffer[lexp ++] = buffer[bufferp ++];
@@ -207,7 +208,7 @@ Tableau* parse_read_file(const char* file_path)
 			.maxproblem = false,
 			.len = 0,
 	};
-	chest.variable = malloc(sizeof(Pair) * 128);
+	chest.variable = malloc(sizeof(Pair) * 1024);
 	return parse_parse_buffer(&chest, buffer);
 
 
