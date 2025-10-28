@@ -8,6 +8,9 @@
 
 #define MAX_LEN 9999
 
+#define LINE_LEN 224
+#define DRAW_LINE() { for(i32 oooga = 0; oooga < LINE_LEN; oooga++) printf("-"); printf("\n"); }
+
 Tableau* parse_parse_buffer(Chest* chest, char* buffer)
 {
 	i32 lexp = 0;
@@ -22,8 +25,9 @@ Tableau* parse_parse_buffer(Chest* chest, char* buffer)
 		chest->maxproblem = true;	
 	}
 	buffer = buffer + 4;
-
-	printf("%s\n", buffer);
+	DRAW_LINE();
+	printf("Input File:\n\n%s\n", buffer);
+	DRAW_LINE();
 
 	u32 len = strlen(buffer);
 	char store[MAX_LEN];
@@ -36,7 +40,7 @@ Tableau* parse_parse_buffer(Chest* chest, char* buffer)
 	}
 
 	constraint_counter --;
-	printf("cons: %d\n", constraint_counter);
+	//printf("cons: %d\n", constraint_counter);
 	u32 dec_variable_count = 0;
 	char* lexbuffer = malloc(sizeof(char) * MAX_LEN);
 	while(buffer[bufferp] != ';')
@@ -62,11 +66,11 @@ Tableau* parse_parse_buffer(Chest* chest, char* buffer)
 			memset(lexbuffer, 0, lexp);
 			lexp = 0;
 			dec_variable_count ++;
-			printf("%d %f\n", p.id, p.value);
+			//printf("%d %f\n", p.id, p.value);
 		}
 		bufferp ++;
 	}
-	printf("Final dec_var = %d\n", dec_variable_count);
+	//printf("Final dec_var = %d\n", dec_variable_count);
 
 	u32 cons_index = 0;
 	while(buffer[bufferp] != '$')
@@ -86,7 +90,7 @@ Tableau* parse_parse_buffer(Chest* chest, char* buffer)
 			bufferp += 2;
 			if(isdigit(buffer[bufferp]))
 			{
-				printf("xd\n");
+				//printf("xd\n");
 			}
 		}
 		if(buffer[bufferp] == '-')
@@ -102,15 +106,15 @@ Tableau* parse_parse_buffer(Chest* chest, char* buffer)
 				rmat[lenrmat ++] = -1 * atof(lexbuffer);
 				if(buffer[bufferp] == ';') 
 				{
-					printf("Hello: %c\n", buffer[bufferp]);
+					//printf("Hello: %c\n", buffer[bufferp]);
 					bufferp ++;
 				}
 				else
 					bufferp += 2;
-				printf("next: %c\n", buffer[bufferp]);
+				//printf("next: %c\n", buffer[bufferp]);
 				memset(lexbuffer, 0, lexp);
 				lexp = 0;
-				printf("%f\n", rmat[lenrmat - 1]);
+				//printf("%f\n", rmat[lenrmat - 1]);
 			}
 		}
 		//printf("DOPNE HERE\n");
@@ -125,17 +129,17 @@ Tableau* parse_parse_buffer(Chest* chest, char* buffer)
 			bufferp += 1;
 			memset(lexbuffer, 0, lexp);
 			lexp = 0;
-			printf("%f\n", rmat[lenrmat - 1]);
+			//printf("%f\n", rmat[lenrmat - 1]);
 		}
 		bufferp ++;
 	}
 
-	printf("RMAT:\n");
+	//printf("RMAT:\n");
 	for(i32 i = 0; i < lenrmat; i++) 
 	{
-		printf("%f ", rmat[i]);
+		//printf("%f ", rmat[i]);
 	}
-	printf("\n");
+	//printf("\n");
 	const i32 extrarows = 3;
 	Tableau* tab = tableau_new(constraint_counter, dec_variable_count + constraint_counter);
 	u32 width = constraint_counter + dec_variable_count;
@@ -143,7 +147,7 @@ Tableau* parse_parse_buffer(Chest* chest, char* buffer)
 	{
 		for(i32 j = 0; j < constraint_counter + dec_variable_count + 1; j++)
 		{
-			printf("%d\n", j + 1);
+			//printf("%d\n", j + 1);
 			tab->rows[i].values[j] = rmat[j + i * (width + 1)];
 		}
 	}
@@ -196,12 +200,12 @@ Tableau* parse_read_file(const char* file_path)
 
 	if((fp = fopen(file_path, "r")) == NULL)
 	{
-		printf("ULLE\n");
+		//printf("ULLE\n");
 		exit(1);
 	}
 	fread(buffer, sizeof(char), MAX_LEN, fp);
 
-	printf("%s\n", buffer);
+	//printf("%s\n", buffer);
 
 	Chest chest = (Chest) {
 		.variable = NULL,
